@@ -1,0 +1,20 @@
+function decodeUplink(input) {
+  var temp = input.bytes[0];  // Primer byte es la temperatura
+  var hum_rel = input.bytes[1];     // Segundo byte es la humedad relativa
+  var humo = input.bytes[2];     // Tercer byte es presencia de humo
+  var batv =  ((input.bytes[3]*100) + input.bytes[4])/100; //Cuarto y quinto byte, estado de la batería
+  var tempsuelo = input.bytes[5];  // Sexto byte es la temperatura de suelo
+  var humsuelo = input.bytes[6];  // Séptimo byte es la humedad de suelo
+  return {
+    data: {
+      temp: temp,
+      hum_rel: hum_rel,
+      humo: humo,
+      batv: batv,
+      tempsuelo:tempsuelo,
+      humsuelo:humsuelo,
+    },
+    warnings: [],
+    errors: []
+  };
+}
