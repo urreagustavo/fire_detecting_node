@@ -1,0 +1,421 @@
+/* - Los comandos AT no me funcionan, no sé cómo modificarlos
+- El gateway dice que recibe datos pero en la aplicación no los reconoce
+- Cómo puedo ver la libreria LoRaWan_APP.h?
+- No sé cómo hacer para enviar otros datos
+- Por qué se demora en volverse a conectar?
+- Cómo sé qué puerto escoger?*/
+
+/*
+Revisar clases a b c parte de potencias ok
+trafico maximo por dia de ttn3 ok 
+calculadora de trafico
+canales del gateway ok
+cambiarcarga 
+decodificador (revisar el del lht65)
+
+*/
+#include "LoRaWan_APP.h" //Librería de LoRaWan para arduino que soporta el Heltec HTCC-AB01
+#include "Arduino.h"    //Librería de arduino que permite trabajar con diferentes micros (AVR) y con el IDE(Integrated Development Environment)de manera más completa
+#include <OneWire.h>                
+#include <DallasTemperature.h>
+
+/*
+ * set LoraWan_RGB to Active,the RGB active in loraWan
+ * RGB red means sending;
+ * RGB purple means joined done;
+ * RGB blue means RxWindow1;
+ * RGB yellow means RxWindow2;
+ * RGB green means received done;
+ */
+
+#include <Wire.h>
+#include "SparkFunHTU21D.h"
+
+//Create an instance of the object
+HTU21D myHumidity;
+// Connect Vin to 3-5VDC
+// Connect GND to ground
+// Connect SCL to I2C clock pin (A5 on UNO)
+// Connect SDA to I2C data pin (A4 on UNO)
+
+#include <Adafruit_ADS1X15.h>
+Adafruit_ADS1115 ads;
+//Adafruit_ADS1015 ads;
+
+//uint8_t: Unsigned integer - 8 bits - 1 byte. Se usa para definir variables de direcciones de los dispositivos. Se utiliza este tipo de definición debido a que 
+//se va a trabajar en código binario (en hexa)y garantiza un menor consumo en tamaño de datos.
+
+/* OTAA para*/
+uint8_t devEui[] = { 0x70, 0xb3, 0xd5, 0x7e, 0xd0, 0x05, 0x4c, 0x96 };  //{ 0x22, 0x32, 0x33, 0x00, 0x00, 0x88, 0x88, 0x02 };
+uint8_t appEui[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+uint8_t appKey[] = { 0x3c, 0x7f, 0xfa, 0x9c, 0x48, 0x7a, 0x20, 0x09, 0x14, 0x6e, 0xb5, 0x7c, 0xf3, 0x1b, 0xcd, 0xbd };//{ 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88, 0x66, 0x01 };
+
+/* ABP para*/
+
+uint8_t nwkSKey[] = { 0x0A, 0xBE, 0x86, 0xA8, 0x4D, 0x96, 0x89, 0x51, 0x23, 0xC5, 0x16, 0xE2, 0xC2, 0x38, 0x31, 0xD2 };
+uint8_t appSKey[] = { 0x65, 0x85, 0x3A, 0x4C, 0x83, 0x53, 0x8B, 0x2E, 0xE6, 0xC3, 0xEE, 0x8C, 0xB9, 0x44, 0x1B, 0x8C };
+uint32_t devAddr =  ( uint32_t )0x260CB9AE;
+
+
+//uint8_t nwkSKey[] = { 0x75, 0x60, 0xBB, 0x79, 0xF7, 0xB9, 0xE7, 0xAF, 0x46, 0x67, 0x66, 0x03, 0xBD, 0x31, 0x1B, 0x24 };
+//uint8_t appSKey[] = { 0x7E, 0x67, 0x5E, 0x1C, 0x96, 0x57, 0xE4, 0x2D, 0x8D, 0xE9, 0x48, 0x04, 0x86, 0x7C, 0xFD, 0x9B };
+//uint32_t devAddr =  ( uint32_t )0x260CF8DA;
+
+//uint8_t nwkSKey[] = { 0x3A, 0x14, 0xDF, 0x5E, 0x69, 0x17, 0x2B, 0x33, 0x45, 0x25, 0x0E, 0x7D, 0xB7, 0x0D, 0xAE, 0x58 };
+//uint8_t appSKey[] = { 0x61, 0x3E, 0x30, 0x1F, 0x4A, 0x3B, 0xD5, 0x6B, 0xC3, 0xCF, 0x7F, 0xF1, 0x4C, 0x1B, 0xD1, 0x90 };
+//uint32_t devAddr =  ( uint32_t )0x260C7562;
+
+//uint8_t nwkSKey[] = { 0x66, 0x58, 0x6E, 0x58, 0x84, 0x85, 0xFF, 0x56, 0x99, 0x87, 0xED, 0x47, 0xCF, 0x2D, 0xEB, 0xFC };
+//uint8_t appSKey[] = { 0xAA, 0xD1, 0xC8, 0x5B, 0xB9, 0x16, 0xE9, 0x75, 0x90, 0x60, 0x26, 0xC7, 0x3A, 0xB2, 0xB2, 0x5B };
+//uint32_t devAddr =  ( uint32_t )0x260C3514;
+/* NODO 2*/
+/* ABP para*/ 
+/*
+uint8_t nwkSKey[] = { 0xb1, 0x38, 0x25, 0x98, 0xde, 0xf2, 0x12, 0x06, 0x7f, 0x3b, 0x06, 0x5d, 0x00, 0x2f, 0xb0, 0x3e };//B1 38 25 98 DE F2 12 06 7F 3B 06 5D 00 2F B0 3E
+uint8_t appSKey[] = { 0x12, 0x01, 0x7f, 0x77, 0xdd, 0x64, 0x50, 0x1A, 0x2a, 0x44, 0x56, 0xb7, 0x76, 0x02, 0x24, 0x7c };//12 01 7F 77 DD 64 50 1A 2A 44 56 B7 76 02 24 7C
+uint32_t devAddr =  ( uint32_t )0x260CD048;//0x007e6ae1;
+*/
+
+/*LoraWan channelsmask, default channels 0-7*/ 
+//uint16_t userChannelsMask[6]={ 0x00FF,0x0000,0x0000,0x0000,0x0000,0x0000 };
+uint16_t userChannelsMask[6]={ 0xFF00,0x0000,0x0000,0x0000,0x0000,0x0000 }; //Con esta máscara funcionó, esta es la máscara con la que trabaja ttn FSB2
+
+
+
+/*LoraWan region, select in arduino IDE tools*/
+LoRaMacRegion_t loraWanRegion = ACTIVE_REGION; //LoRaMacRegion_t: Funcion booleana que indica la región y frecuencia respectiva están activas o no.
+                                               //ACTIVE_REGION: Parámetro que toma los datos de la pestaña herramientas
+
+/*LoraWan Class, Class A and Class C are supported*/
+DeviceClass_t  loraWanClass = LORAWAN_CLASS;  //DeviceClass_t: Permite que se defina la clase de EndDevice si es clase a, b o c. LORAWAN_CLASS según lo seleccionado en herramientas.
+                                              //{ CLASS_A = 0x00, CLASS_B = 0x01, CLASS_C = 0x02 }
+
+/*the application data transmission duty cycle.  value in [ms].*/
+uint32_t appTxDutyCycle = 180000;// 3 minutos
+//uint32_t appTxDutyCycle = 300000; //0x493e0 = 5min en hexa = 300000       
+
+/*OTAA or ABP*/
+bool overTheAirActivation = LORAWAN_NETMODE;
+
+/*ADR (Adaptative Data Rate) enable*/
+bool loraWanAdr = LORAWAN_ADR;
+
+/* set LORAWAN_Net_Reserve ON, the node could save the network info to flash, when node reset not need to join again */
+bool keepNet = LORAWAN_NET_RESERVE;
+
+/* Indicates if the node is sending confirmed or unconfirmed messages */
+bool isTxConfirmed = LORAWAN_UPLINKMODE;
+
+/* Application port */
+//Cambia el puerto, por defecto es 2
+uint8_t appPort = 3; //2;
+
+/*!
+* Number of trials to transmit the frame, if the LoRaMAC layer did not
+* receive an acknowledgment. The MAC performs a datarate adaptation,
+* according to the LoRaWAN Specification V1.0.2, chapter 18.4, according
+* to the following table:
+*
+* Transmission nb | Data Rate
+* ----------------|-----------
+* 1 (first)       | DR
+* 2               | DR
+* 3               | max(DR-1,0)
+* 4               | max(DR-1,0)
+* 5               | max(DR-2,0)
+* 6               | max(DR-2,0)
+* 7               | max(DR-3,0)
+* 8               | max(DR-3,0)
+*
+* Note, that if NbTrials is set to 1 or 2, the MAC will not decrease
+* the datarate, in case the LoRaMAC layer did not receive an acknowledgment
+*/
+uint8_t confirmedNbTrials = 4;
+
+//Sensor de humo
+int ledPower = GPIO4;   //Connect 3 led driver pins of dust sensor to Arduino D2
+
+//Temperatura suelo
+OneWire ourWire(GPIO0); 
+DallasTemperature sensors(&ourWire);
+
+int cont=0;
+
+/* Prepares the payload of the frame */
+static void prepareTxFrame( uint8_t port )
+{
+    cont+=1;
+    //pinMode(Vext, OUTPUT);
+    
+    // Vext ON
+    digitalWrite(Vext, LOW);// Vext: GPIO 6 --> LOW --> Vext(3.3V/300mA) = ON // - GPIO 6 --> HIGH --> Vext(3.3V/300mA) = OFF
+    delay(1000);
+    
+  /*****Ads1115*****/
+    // Variables ADS1115
+    int16_t adc0, adc1, adc2;// adc3; 
+    float multiplier = 0.0625F;//0.125F;//0.0625F;//0.1875F; /* ADS1115  @ +/- 6.144V gain (16-bit results) */
+    //float   multiplier = 3.0F;
+  
+    adc0 = ads.readADC_SingleEnded(0);  //Usado para el humo
+    adc1 = ads.readADC_SingleEnded(1);  //Usado para la humedad de suelo
+    adc2 = ads.readADC_SingleEnded(2);
+    //adc3 = ads.readADC_SingleEnded(3);
+    
+    //Serial.print("AIN0: "); Serial.println(adc0 * multiplier);
+    //Serial.print("AIN1: "); Serial.println(adc1 * multiplier);
+    //Serial.print("AIN2: "); Serial.println(adc2 * multiplier);
+    //Serial.print("AIN3: "); Serial.println(adc3 * multiplier);
+    Serial.println(" ");
+    
+    delay(200);
+
+  /*****Humedad de suelo*****/
+    // Variables humedad de suelo
+    const int AirValue = 725;   //Valor cuando el está seco
+    const int WaterValue = 310;  //Valor cuando está completamente en agua
+    int soilMoistureValue = 0;
+    int soilMoisturepercent = 0;
+    
+    //Programa
+    soilMoistureValue = adc1 * multiplier;//analogRead(ADC); //      //Lectura del humedad de suelo
+    soilMoisturepercent = map(soilMoistureValue, AirValue, WaterValue, 0, 100); //Porcentaje de humedad de suelo
+
+    //Serial.print(soilMoistureValue);
+    
+    Serial.print("- Humedad de Suelo = \t\t");
+    
+    if(soilMoisturepercent >= 100)
+    {
+    //  Serial.print(soilMoistureValue);
+    //  Serial.print("\t");
+    //  Serial.print("\t");
+    //  Serial.println("Very Wet"); 
+      soilMoisturepercent = 100;
+      Serial.print(soilMoisturepercent);
+      Serial.println(" %");
+    }
+    else if(soilMoisturepercent >0 && soilMoisturepercent < 100)
+    {
+    //  Serial.print(soilMoistureValue);
+    //  Serial.print("\t");
+    //  Serial.print("\t");
+    //  Serial.println("Wet");
+      Serial.print(soilMoisturepercent);
+      Serial.println(" %");
+    }
+    else if(soilMoisturepercent <=0)
+    {
+    //  Serial.print(soilMoistureValue);
+    //  Serial.print("\t");
+    //  Serial.print("\t");
+    //  Serial.println("Dry");
+      soilMoisturepercent = 0;
+      Serial.print(soilMoisturepercent);
+      Serial.println(" %");
+    }
+    
+    delay(200);
+    
+  /*****Temperatura de suelo*****/
+    sensors.requestTemperatures();   //Se envía el comando para leer la temperatura
+    int tempsuelo= sensors.getTempCByIndex(0); //Se obtiene la temperatura en ºC
+    Serial.print("- Temperatura de Suelo = \t");
+    Serial.print(tempsuelo);
+    Serial.println(" ºC");
+    delay(200);
+
+  /*****Estado de la bateria*****/    
+    //Variables para estado de batería
+    float batteryVoltage = getBatteryVoltage();
+    float bcalcVoltage = 0;
+    int voltint=0;
+    int parteint=0;
+    int partedec=0;
+
+    //Programa
+//    Serial.print("Battery Voltage: ");
+//    Serial.print(batteryVoltage);
+//    Serial.println(" V");
+  
+    bcalcVoltage = (batteryVoltage)/1000;// * (3.7 / 1024.0);
+    Serial.print("- Estado de Batería = \t\t");
+    Serial.print(bcalcVoltage);
+    Serial.println(" V");
+
+    parteint=bcalcVoltage;
+//    Serial.print("Parte entera: ");
+//    Serial.println(parteint);
+  
+    voltint=bcalcVoltage*100;
+    partedec=(voltint%100);
+//    Serial.print("Parte decimal: ");
+//    Serial.println(partedec);
+
+    delay(200);
+
+
+  /*****Deteccion de humo*****/
+    //Variables sensor de humo
+    int measurePin = adc2; //* multiplier/1000; //Connect dust sensor to Arduino A0 pin
+    int samplingTime = 280;
+    int deltaTime = 40; 
+    int sleepTime = 9680;
+
+    float voMeasured = 0;
+    float calcVoltage = 0;
+    float dustDensity = 0;
+    int smk = 0; //Bandera humo
+        
+    // Para la deteccion de humo
+    digitalWrite(ledPower,LOW); // power on the LED
+    delayMicroseconds(samplingTime);
+
+    voMeasured = measurePin;//analogRead(measurePin); // read the dust value
+    //Serial.print(voMeasured);
+    delayMicroseconds(deltaTime);
+    digitalWrite(ledPower,HIGH); // turn the LED off
+    delayMicroseconds(sleepTime);
+
+    // 0 - 5V mapped to 0 - 1023 integer values
+    // recover voltage
+    calcVoltage = voMeasured*3.3/32767;//65535;// * (5.0 / 1024.0);
+
+    // linear eqaution taken from http://www.howmuchsnow.com/arduino/airquality/
+    // Chris Nafis (c) 2012
+    dustDensity = calcVoltage *100/3.3;//0.170 * calcVoltage - 0.1;
+  
+    Serial.print("- Densidad de polvo = \t\t");
+    Serial.print(dustDensity,3); // unit: mg/m3
+    Serial.print(" mg/m3 \t"); // unit
+    Serial.print(" => ");
+    //delay(1000);
+    
+    // Envia una bandera que indica que humo o no
+    if (dustDensity>0.7)
+    {
+        Serial.print("Hay humo \n");
+        smk = 1;
+    }
+    else
+    {
+        Serial.print("No hay humo \n");
+        smk = 0;
+    }
+
+    delay(200);
+    
+  /*****Temperatura y humedad relativa*****/
+    //myHumidity.begin();
+    float humd = myHumidity.readHumidity();
+    float temp = myHumidity.readTemperature(); 
+
+    delay(100); //Indica que espere para que de tiempo de enviar la señal
+    
+    // Vext OFF
+    digitalWrite(Vext, HIGH);
+    //digitalWrite(GPIO6, HIGH);
+    
+    Serial.print("- Temperatura Ambiente = \t");
+    if (temp == ERROR_I2C_TIMEOUT) {
+      Serial.print("i2c timeout");
+    } else if (temp == ERROR_BAD_CRC) {
+      Serial.print("bad crc");
+    } else {
+      Serial.print(temp, 2);
+      Serial.println(" ºC");
+    }
+    
+    Serial.print("- Humedad Relativa = \t\t");
+    Serial.print(humd, 2);
+    Serial.println(" % \n");  
+    Serial.println(cont);
+    Serial.println("\n");
+    delay(1000);
+    
+  /*appData size is LORAWAN_APP_DATA_MAX_SIZE which is defined in "commissioning.h".
+  *appDataSize max value is LORAWAN_APP_DATA_MAX_SIZE.
+  *if enabled AT, don't modify LORAWAN_APP_DATA_MAX_SIZE, it may cause system hanging or failure.
+  *if disabled AT, LORAWAN_APP_DATA_MAX_SIZE can be modified, the max value is reference to lorawan region and SF.
+  *for example, if use REGION_CN470, 
+  *the max value for different DR can be found in MaxPayloadOfDatarateCN470 refer to DataratesCN470 and BandwidthsCN470 in "RegionCN470.h".
+  */
+  //Para cambiar el conenido del mensaje
+    appDataSize = 7;
+    appData[0] = temp;
+    appData[1] = humd;
+    appData[2] = smk;
+    appData[3] = parteint;
+    appData[4] = partedec;
+    appData[5] = tempsuelo;
+    appData[6] = soilMoisturepercent;
+}
+
+void setup() {
+  pinMode(Vext, OUTPUT);
+  Serial.begin(115200);
+  pinMode(ledPower,OUTPUT);
+  myHumidity.begin();
+  sensors.begin();   //Se inicia el sensor
+  ads.begin();
+
+
+#if(AT_SUPPORT)
+  enableAt();
+#endif
+  deviceState = DEVICE_STATE_INIT;
+  LoRaWAN.ifskipjoin();
+}
+
+void loop()
+{
+  switch( deviceState )
+  {
+    case DEVICE_STATE_INIT:
+    {
+#if(LORAWAN_DEVEUI_AUTO)
+      LoRaWAN.generateDeveuiByChipID();
+#endif
+#if(AT_SUPPORT)
+      getDevParam();
+#endif
+      printDevParam();
+      LoRaWAN.init(loraWanClass,loraWanRegion);
+      deviceState = DEVICE_STATE_JOIN;
+      break;
+    }
+    case DEVICE_STATE_JOIN:
+    {
+      LoRaWAN.join();
+      break;
+    }
+    case DEVICE_STATE_SEND:
+    {
+      prepareTxFrame( appPort );
+      LoRaWAN.send();
+      //digitalWrite(Vext, HIGH); //Para desactivar
+      deviceState = DEVICE_STATE_CYCLE;
+      break;
+    }
+    case DEVICE_STATE_CYCLE:
+    {
+      // Schedule next packet transmission
+      txDutyCycleTime = appTxDutyCycle + randr( 0, APP_TX_DUTYCYCLE_RND );
+      LoRaWAN.cycle(txDutyCycleTime);
+      deviceState = DEVICE_STATE_SLEEP;
+      break;
+    }
+    case DEVICE_STATE_SLEEP:
+    {
+      LoRaWAN.sleep();
+      //digitalWrite(Vext, HIGH); //Para desactivar
+      //digitalWrite(GPIO6, HIGH); //Para desactivar
+      break;
+    }
+    default:
+    {
+      deviceState = DEVICE_STATE_INIT;
+      break;
+    }
+  }
+}
